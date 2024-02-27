@@ -5,9 +5,12 @@ if( !class_exists( 'MV_Slider_Post_Type')) {
     function __construct(){
       add_action( 'init', array( $this, 'create_post_type' ));
       add_action( 'add_meta_boxes', array( $this, 'add_meta_boxes'));
-      add_action( 'save_post', array($this, 'save_post'), 10, 2);
+      add_action( 'save_post', array( $this, 'save_post'), 10, 2);
+      add_filter( 'manage_mv-slider_posts_columns', array( $this, 'mv_slider_cpt_columns' ) );
+      add_action( 'manage_mv-slider_posts_custom_column', array( $this, 'mv_slider_custom_columns' ), 10, 2 );
+      add_filter( 'manage_edit-mv-slider_sortable_columns', array( $this, 'mv_slider_sortable_columns' ) );
     }
-
+//callback to create cpt
     public function create_post_type(){
       register_post_type(
         'mv-slider',
@@ -35,7 +38,29 @@ if( !class_exists( 'MV_Slider_Post_Type')) {
          )
       );
     }
-
+//callback to to pupulate custom columns on cpt
+    public function mv_slider_custom_columns( $column, $post_id ){
+      switch( $column ){
+        case 'mv_slider_link_text':
+          echo esc_html(get_post_meta( $post_id, 'mv_slider_link_text', true ) );
+        break;
+        case 'mv_slider_link_url':
+          echo esc_url(get_post_meta( $post_id, 'mv_slider_link_url', true ) );
+        break;
+      }
+    }
+//callback to allow columns to be sortable on cpt main table page
+    public function mv_slider_sortable_columns( $columns ){
+      $columns['mv_slider_link_text'] = 'mv_slider_link_text';
+      return $columns;
+    }
+//callback to display custom columns on cpt table page
+    public function mv_slider_cpt_columns( $columns ){
+      $columns['mv_slider_link_text'] = esc_html__( 'Link Text', 'mv-slider' );
+      $columns['mv_slider_link_url'] = esc_html__( 'Link URL', 'mv-slider' );
+      return $columns;
+    }
+//callback to add the meta BOX to the cpt posts page
     public function add_meta_boxes(){
       add_meta_box(
         'mv_slider_meta_box',
@@ -46,11 +71,11 @@ if( !class_exists( 'MV_Slider_Post_Type')) {
         'high',
       );
     }
-
+//callback to add custom meta fields to cpt post page
     public function add_inner_meta_boxes( $post ) {
       require_once( MV_SLIDER_PATH . 'views/mv-slider_metabox.php' );
     }
-
+//callback to save the cpt post meta fields
     public function save_post( $post_id ){
     //BEGIN GAURD CLAUSES
       //matches nonce on mv_slider form
@@ -72,7 +97,7 @@ if( !class_exists( 'MV_Slider_Post_Type')) {
         }
       }
     //END GAURD CAUSES
-      if( isset( $_POST['action'] ) && $_POST['action'] == 'editpost' ) {
+      if( isset( $_POST['action'] ) && $_POST['action'] === 'editpost' ) {
         $old_link_text = get_post_meta( $post_id, 'mv_slider_link_text', true);
         $new_link_text = $_POST['mv_slider_link_text'];
         $old_link_url = get_post_meta( $post_id, 'mv_slider_link_url', true);
